@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { actions, useAppData } from "@/lib/store";
 import {
   balance,
+  effectiveMonthlyExpense,
   grossYield,
   last12Months,
   monthlyCFEstimate,
@@ -181,7 +182,25 @@ export default function PropertyDetailPage() {
 
       <div className="mx-6 mt-6 mb-6 bg-white rounded-2xl p-5 shadow-sm">
         <Row label="家賃 (月)" value={formatYen(property.rent)} />
-        <Row label="経費 (月)" value={formatYen(property.monthlyExpense)} />
+        {property.managementFee ? (
+          <Row label="管理費 (月)" value={formatYen(property.managementFee)} />
+        ) : null}
+        {property.propertyTax ? (
+          <Row
+            label="固定資産税 (年)"
+            value={formatYen(property.propertyTax)}
+            hint={`月割 ${formatYen(Math.round(property.propertyTax / 12))}`}
+          />
+        ) : null}
+        {property.monthlyExpense ? (
+          <Row label="その他経費 (月)" value={formatYen(property.monthlyExpense)} />
+        ) : null}
+        <Row
+          label="経費合計 (月)"
+          value={formatYen(effectiveMonthlyExpense(property))}
+          accent={false}
+          subtle
+        />
         {property.purchasePrice && (
           <>
             <Row label="購入価格" value={formatYenShort(property.purchasePrice)} />
@@ -357,12 +376,14 @@ function Row({
   value,
   hint,
   accent,
+  subtle,
   last,
 }: {
   label: string;
   value: string;
   hint?: string;
   accent?: boolean;
+  subtle?: boolean;
   last?: boolean;
 }) {
   return (
@@ -370,12 +391,19 @@ function Row({
       className={`flex items-center justify-between py-3 ${last ? "" : "border-b border-[#F5F2EB]"}`}
     >
       <div>
-        <div className="text-[12px] text-[#9B9588] font-medium">{label}</div>
+        <div
+          className="text-[12px] font-medium"
+          style={{ color: subtle ? "#B5B0A4" : "#9B9588" }}
+        >
+          {label}
+        </div>
         {hint && <div className="text-[10px] text-[#B5B0A4] mt-0.5">{hint}</div>}
       </div>
       <div
         className="text-[15px] font-bold num"
-        style={{ color: accent ? "#3D8B4E" : "#1F1F1F" }}
+        style={{
+          color: accent ? "#3D8B4E" : subtle ? "#7A6F5C" : "#1F1F1F",
+        }}
       >
         {value}
       </div>

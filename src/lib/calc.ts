@@ -57,6 +57,12 @@ export function ytd(txs: Transaction[], year: number): MonthSummary[] {
   return result;
 }
 
+export function effectiveMonthlyExpense(p: Property): number {
+  const mgmt = p.managementFee ?? 0;
+  const tax = (p.propertyTax ?? 0) / 12;
+  return p.monthlyExpense + mgmt + tax;
+}
+
 export function grossYield(p: Property): number {
   if (!p.purchasePrice || p.purchasePrice <= 0) return 0;
   return ((p.rent * 12) / p.purchasePrice) * 100;
@@ -64,12 +70,12 @@ export function grossYield(p: Property): number {
 
 export function netYield(p: Property): number {
   if (!p.purchasePrice || p.purchasePrice <= 0) return 0;
-  const cf = (p.rent - p.monthlyExpense) * 12;
+  const cf = (p.rent - effectiveMonthlyExpense(p)) * 12;
   return (cf / p.purchasePrice) * 100;
 }
 
 export function monthlyCFEstimate(p: Property): number {
-  return p.rent - p.monthlyExpense;
+  return p.rent - effectiveMonthlyExpense(p);
 }
 
 export function ownedTotalMonthlyCF(data: AppData): number {

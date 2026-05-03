@@ -8,6 +8,8 @@ export interface Property {
   photo?: string;
   rent: number;
   monthlyExpense: number;
+  managementFee?: number;
+  propertyTax?: number;
   purchasePrice?: number;
   acquiredAt?: string;
   note?: string;

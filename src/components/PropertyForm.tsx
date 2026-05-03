@@ -22,6 +22,12 @@ export function PropertyForm({ initial, defaultStatus = "owned" }: Props) {
   const [monthlyExpense, setMonthlyExpense] = useState<string>(
     initial ? String(initial.monthlyExpense) : "",
   );
+  const [managementFee, setManagementFee] = useState<string>(
+    initial?.managementFee ? String(initial.managementFee) : "",
+  );
+  const [propertyTax, setPropertyTax] = useState<string>(
+    initial?.propertyTax ? String(initial.propertyTax) : "",
+  );
   const [purchasePrice, setPurchasePrice] = useState<string>(
     initial?.purchasePrice ? String(initial.purchasePrice) : "",
   );
@@ -52,6 +58,8 @@ export function PropertyForm({ initial, defaultStatus = "owned" }: Props) {
     }
     const rentNum = Number(rent || "0");
     const expNum = Number(monthlyExpense || "0");
+    const mgmtNum = managementFee ? Number(managementFee) : undefined;
+    const taxNum = propertyTax ? Number(propertyTax) : undefined;
     const priceNum = purchasePrice ? Number(purchasePrice) : undefined;
 
     const payload = {
@@ -61,6 +69,8 @@ export function PropertyForm({ initial, defaultStatus = "owned" }: Props) {
       photo: photo || undefined,
       rent: rentNum,
       monthlyExpense: expNum,
+      managementFee: mgmtNum,
+      propertyTax: taxNum,
       purchasePrice: priceNum,
       acquiredAt: acquiredAt || undefined,
       note: note.trim() || undefined,
@@ -133,7 +143,15 @@ export function PropertyForm({ initial, defaultStatus = "owned" }: Props) {
           <YenInput value={rent} onChange={setRent} placeholder="85000" />
         </Field>
 
-        <Field label="月の経費目安(管理費・修繕積立・ローン返済など)">
+        <Field label="管理費(月・任意)">
+          <YenInput value={managementFee} onChange={setManagementFee} placeholder="8000" />
+        </Field>
+
+        <Field label="固定資産税(年・任意)">
+          <YenInput value={propertyTax} onChange={setPropertyTax} placeholder="60000" />
+        </Field>
+
+        <Field label="その他月額経費(ローン返済・修繕費など)">
           <YenInput value={monthlyExpense} onChange={setMonthlyExpense} placeholder="12500" />
         </Field>
 

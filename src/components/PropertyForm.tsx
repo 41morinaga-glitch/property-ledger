@@ -172,6 +172,7 @@ export function PropertyForm({ initial, defaultStatus = "owned" }: Props) {
             onChange={setAutoRecord}
             rent={Number(rent || "0")}
             expense={Number(monthlyExpense || "0") + (managementFee ? Number(managementFee) : 0)}
+            propertyTax={propertyTax ? Number(propertyTax) : 0}
           />
         )}
 
@@ -237,32 +238,40 @@ function AutoRecordSection({
   onChange,
   rent,
   expense,
+  propertyTax,
 }: {
   value: AutoRecordConfig;
   onChange: (cfg: AutoRecordConfig) => void;
   rent: number;
   expense: number;
+  propertyTax: number;
 }) {
   const setEnabled = (v: boolean) => onChange({ ...value, enabled: v });
   const setRent = (v: boolean) => onChange({ ...value, rent: v });
   const setExpense = (v: boolean) => onChange({ ...value, expense: v });
   const setRentDay = (d: number) => onChange({ ...value, rentDay: d });
   const setExpenseDay = (d: number) => onChange({ ...value, expenseDay: d });
+  const setPropertyTax = (v: boolean) => onChange({ ...value, propertyTax: v });
+  const setPropertyTaxMonth = (m: number) =>
+    onChange({ ...value, propertyTaxMonth: m });
+  const setPropertyTaxDay = (d: number) =>
+    onChange({ ...value, propertyTaxDay: d });
 
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-5">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex-1 pr-3">
-          <div className="text-[15px] font-semibold">毎月の自動記録</div>
+          <div className="text-[15px] font-semibold">自動記録</div>
           <div className="text-[11px] text-[#9B9588] mt-0.5 leading-relaxed">
-            一度設定すると、毎月の家賃・経費を自動で記録します。
+            毎月の家賃・経費、毎年の固定資産税を自動で記録します。設定以前の月は対象外。
           </div>
         </div>
         <Toggle on={value.enabled} onChange={setEnabled} />
       </div>
 
       {value.enabled && (
-        <div className="border-t border-[#F5F2EB] px-5 py-4 space-y-4">
+        <div className="border-t border-[#F5F2EB] px-5 py-4 space-y-5">
+          <SectionLabel>毎月</SectionLabel>
           <RecurringRow
             label="家賃を毎月記録"
             on={value.rent}
@@ -280,10 +289,96 @@ function AutoRecordSection({
             onDayChange={setExpenseDay}
             amount={expense}
           />
+
+          <SectionLabel>毎年</SectionLabel>
+          <YearlyRow
+            label="固定資産税を毎年記録"
+            sublabel="物件情報の年額が使われます"
+            on={value.propertyTax ?? false}
+            onToggle={setPropertyTax}
+            month={value.propertyTaxMonth ?? 5}
+            day={value.propertyTaxDay ?? 1}
+            onMonthChange={setPropertyTaxMonth}
+            onDayChange={setPropertyTaxDay}
+            amount={propertyTax}
+          />
+
           <div className="text-[11px] text-[#9B9588] leading-relaxed pt-1">
-            ※ 固定資産税は年単位なので自動記録の対象外です。手動で記録してください。
-            <br />※ 同月内に同額の手動記録があれば、自動記録は重複しません。
+            ※ 同期間内に既に同種の記録があれば、自動記録は重複しません。
+            <br />※ 自動生成された記録もタップで個別に編集・削除できます。
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-[10px] tracking-[2px] text-[#9B9588] font-semibold pt-1">
+      {children}
+    </div>
+  );
+}
+
+function YearlyRow({
+  label,
+  sublabel,
+  on,
+  onToggle,
+  month,
+  day,
+  onMonthChange,
+  onDayChange,
+  amount,
+}: {
+  label: string;
+  sublabel?: string;
+  on: boolean;
+  onToggle: (v: boolean) => void;
+  month: number;
+  day: number;
+  onMonthChange: (m: number) => void;
+  onDayChange: (d: number) => void;
+  amount: number;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[14px] font-semibold">{label}</div>
+          {sublabel && <div className="text-[10px] text-[#9B9588] mt-0.5">{sublabel}</div>}
+        </div>
+        <Toggle on={on} onChange={onToggle} small />
+      </div>
+      {on && (
+        <div className="mt-3 flex items-center gap-2 pl-1 flex-wrap">
+          <span className="text-[12px] text-[#9B9588]">毎年</span>
+          <select
+            value={month}
+            onChange={(e) => onMonthChange(Number(e.target.value))}
+            className="text-[16px] py-2 px-3 bg-[#F0EDE5] rounded-lg font-semibold num focus:outline-none"
+          >
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <option key={m} value={m}>
+                {m}月
+              </option>
+            ))}
+          </select>
+          <select
+            value={day}
+            onChange={(e) => onDayChange(Number(e.target.value))}
+            className="text-[16px] py-2 px-3 bg-[#F0EDE5] rounded-lg font-semibold num focus:outline-none"
+          >
+            {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+              <option key={d} value={d}>
+                {d}日
+              </option>
+            ))}
+          </select>
+          <span className="ml-auto text-[14px] font-bold num text-[#1F1F1F]">
+            {formatYen(amount)}
+          </span>
         </div>
       )}
     </div>

@@ -23,7 +23,16 @@ export interface AutoRecordConfig {
   expenseDay: number;
   rent: boolean;
   expense: boolean;
+  /** 固定資産税を毎年自動記録 */
+  propertyTax?: boolean;
+  /** 固定資産税の記録月(1-12) */
+  propertyTaxMonth?: number;
+  /** 固定資産税の記録日(1-28) */
+  propertyTaxDay?: number;
+  /** 月次の最終生成 ym(YYYY-MM) */
   lastGeneratedYm?: string;
+  /** 年次(固定資産税)の最終生成年 */
+  lastGeneratedTaxYear?: number;
 }
 
 export const DEFAULT_AUTO_RECORD: AutoRecordConfig = {
@@ -32,6 +41,9 @@ export const DEFAULT_AUTO_RECORD: AutoRecordConfig = {
   expenseDay: 1,
   rent: true,
   expense: true,
+  propertyTax: false,
+  propertyTaxMonth: 5,
+  propertyTaxDay: 1,
 };
 
 export type TxKind = "income" | "expense";

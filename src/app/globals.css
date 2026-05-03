@@ -1,26 +1,82 @@
 @import "tailwindcss";
 
+@theme {
+  --color-bg-light: #F7F5F0;
+  --color-bg-dark: #EFEBE3;
+  --color-ink: #1F1F1F;
+  --color-ink-soft: #5C5448;
+  --color-muted: #9B9588;
+  --color-line: #EFEBE3;
+  --color-card: #FFFFFF;
+  --color-plus: #3D8B4E;
+  --color-plus-soft: #86C998;
+  --color-plus-bg: #F0F4F0;
+  --color-minus: #B85450;
+  --color-minus-soft: #E8B4A6;
+  --color-blue: #4F7CAC;
+  --color-blue-dark: #3A5F8A;
+  --color-stone: #C9B79C;
+  --color-pill: #F0EDE5;
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+  background: linear-gradient(180deg, #F7F5F0 0%, #EFEBE3 100%);
+  background-attachment: fixed;
+  color: #1F1F1F;
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans",
+    "Hiragino Kaku Gothic ProN", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100dvh;
 }
+
+.num {
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.animate-slide-up { animation: slide-up 0.36s cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-fade-in { animation: fade-in 0.24s ease-out; }
+.animate-fade-up { animation: fade-up 0.5s ease-out backwards; }
+.animate-blink { animation: blink 1s infinite; }
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] { -moz-appearance: textfield; }
+
+button { -webkit-tap-highlight-color: transparent; }

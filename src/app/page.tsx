@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAppData, actions } from "@/lib/store";
 import { currentYm, formatYen, formatYenShort, greeting } from "@/lib/format";
-import { monthSummary, monthlyCFEstimate, txByProperty } from "@/lib/calc";
+import { balance, expense, income, monthSummary, monthlyCFEstimate, txByProperty } from "@/lib/calc";
 import { PropertyCard } from "@/components/PropertyCard";
 import { MonthCarousel } from "@/components/MonthCarousel";
 import { ChevronRight } from "@/components/Icon";
@@ -25,25 +25,21 @@ export default function HomePage() {
   );
 
   const total = useMemo(() => monthSummary(data.transactions, ym), [data.transactions, ym]);
-  const prev = useMemo(() => {
-    const [y, m] = ym.split("-").map(Number);
-    const d = new Date(y, m - 2, 1);
-    const prevYm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    return monthSummary(data.transactions, prevYm);
-  }, [data.transactions, ym]);
+  const lifetime = useMemo(() => {
+    const txs = data.transactions;
+    return {
+      balance: balance(txs),
+      income: income(txs),
+      expense: expense(txs),
+    };
+  }, [data.transactions]);
 
   const isFirstUse = data.properties.length === 0 && data.transactions.length === 0;
 
   if (isFirstUse) return <Onboarding />;
 
-  const balanceColor = total.balance >= 0 ? "#3D8B4E" : "#B85450";
-  const delta = total.balance - prev.balance;
-  const deltaText =
-    prev.balance === 0 && total.balance === 0
-      ? "—"
-      : `前月比 ${formatYen(delta, { sign: delta > 0 })}`;
-  const deltaDot = delta >= 0 ? "#86C998" : "#E8B4A6";
-
+  const lifetimeColor = lifetime.balance >= 0 ? "#3D8B4E" : "#B85450";
+  const monthColor = total.balance >= 0 ? "#3D8B4E" : "#B85450";
   const considerSum = considering.reduce((s, p) => s + monthlyCFEstimate(p), 0);
 
   return (
@@ -54,20 +50,23 @@ export default function HomePage() {
       </div>
 
       <div className="text-center px-7 py-10">
-        <div className="text-[11px] tracking-[2px] text-[#9B9588] mb-3">今月の収支</div>
+        <div className="text-[11px] tracking-[2px] text-[#9B9588] mb-3">累計</div>
         <div
           className="text-[52px] font-bold num animate-fade-up"
-          style={{ color: balanceColor, letterSpacing: "-1.5px", lineHeight: 1 }}
+          style={{ color: lifetimeColor, letterSpacing: "-1.5px", lineHeight: 1 }}
         >
-          {formatYen(total.balance, { sign: total.balance > 0 })}
-        </div>
-        <div className="text-xs text-[#7A6F5C] mt-3 inline-flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: deltaDot }} />
-          {deltaText}
+          {formatYen(lifetime.balance, { sign: lifetime.balance > 0 })}
         </div>
         <div className="flex justify-center gap-6 mt-5 text-[11px] text-[#9B9588]">
-          <span>収入 <span className="num text-[#3D8B4E] font-semibold">{formatYen(total.income)}</span></span>
-          <span>支出 <span className="num text-[#B85450] font-semibold">{formatYen(total.expense)}</span></span>
+          <span>累計収入 <span className="num text-[#3D8B4E] font-semibold">{formatYen(lifetime.income)}</span></span>
+          <span>累計支出 <span className="num text-[#B85450] font-semibold">{formatYen(lifetime.expense)}</span></span>
+        </div>
+
+        <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 text-[12px]">
+          <span className="text-[#9B9588]">今月</span>
+          <span className="num font-semibold" style={{ color: monthColor }}>
+            {formatYen(total.balance, { sign: total.balance > 0 })}
+          </span>
         </div>
       </div>
 

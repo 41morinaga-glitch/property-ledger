@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ChevronLeft } from "./Icon";
 
 interface Props {
   items: { value: number; label: string }[];
@@ -46,6 +47,15 @@ export function WheelPicker({
     ref.current.scrollTo({ top: idx * itemHeight, behavior: "smooth" });
   }, [value, items, itemHeight]);
 
+  const commit = (idx: number) => {
+    const clamped = Math.max(0, Math.min(items.length - 1, idx));
+    const v = items[clamped]?.value;
+    if (v !== undefined && v !== lastSyncedValue.current) {
+      lastSyncedValue.current = v;
+      onChange(v);
+    }
+  };
+
   const onScroll = () => {
     const el = ref.current;
     if (!el) return;
@@ -58,17 +68,20 @@ export function WheelPicker({
     }
     if (idleTimer.current) clearTimeout(idleTimer.current);
     idleTimer.current = setTimeout(() => {
-      const finalIdx = Math.max(
-        0,
-        Math.min(items.length - 1, Math.round(el.scrollTop / itemHeight)),
-      );
-      const v = items[finalIdx]?.value;
-      if (v !== undefined && v !== lastSyncedValue.current) {
-        lastSyncedValue.current = v;
-        onChange(v);
-      }
+      commit(Math.round(el.scrollTop / itemHeight));
     }, 150);
   };
+
+  const scrollToIdx = (idx: number) => {
+    const clamped = Math.max(0, Math.min(items.length - 1, idx));
+    if (ref.current) {
+      ref.current.scrollTo({ top: clamped * itemHeight, behavior: "smooth" });
+    }
+    setActiveIdx(clamped);
+    commit(clamped);
+  };
+
+  const step = (delta: number) => scrollToIdx(activeIdx + delta);
 
   return (
     <div
@@ -84,10 +97,29 @@ export function WheelPicker({
         }}
       />
 
+      <button
+        type="button"
+        aria-label="ひとつ前"
+        onClick={() => step(-1)}
+        className="absolute right-1 z-10 w-7 h-6 grid place-items-center rounded-md text-[#9B9588] active:bg-[#F0EDE5]"
+        style={{ top: 4 }}
+      >
+        <RotatedChevron up />
+      </button>
+      <button
+        type="button"
+        aria-label="ひとつ次"
+        onClick={() => step(1)}
+        className="absolute right-1 z-10 w-7 h-6 grid place-items-center rounded-md text-[#9B9588] active:bg-[#F0EDE5]"
+        style={{ bottom: 4 }}
+      >
+        <RotatedChevron />
+      </button>
+
       <div
         ref={ref}
         onScroll={onScroll}
-        className="absolute inset-0 overflow-y-scroll no-scrollbar"
+        className="absolute inset-0 overflow-y-scroll no-scrollbar cursor-ns-resize"
         style={{
           scrollSnapType: "y mandatory",
           WebkitOverflowScrolling: "touch",
@@ -103,7 +135,16 @@ export function WheelPicker({
           return (
             <div
               key={it.value}
-              className="num font-semibold text-center"
+              role="button"
+              tabIndex={0}
+              onClick={() => scrollToIdx(i)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  scrollToIdx(i);
+                }
+              }}
+              className="num font-semibold text-center cursor-pointer"
               style={{
                 height: itemHeight,
                 lineHeight: `${itemHeight}px`,
@@ -123,5 +164,13 @@ export function WheelPicker({
         <div style={{ height: padding }} aria-hidden />
       </div>
     </div>
+  );
+}
+
+function RotatedChevron({ up }: { up?: boolean }) {
+  return (
+    <span style={{ transform: up ? "rotate(90deg)" : "rotate(-90deg)", display: "inline-block" }}>
+      <ChevronLeft size={14} />
+    </span>
   );
 }

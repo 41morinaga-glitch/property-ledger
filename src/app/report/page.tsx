@@ -8,6 +8,7 @@ import { formatYen, formatYenShort } from "@/lib/format";
 import { Thumb } from "@/components/Thumb";
 import { DownloadIcon } from "@/components/Icon";
 import { CumulativeChart, type CumulativePoint } from "@/components/CumulativeChart";
+import { txLabel } from "@/lib/types";
 
 export default function ReportPage() {
   const data = useAppData();
@@ -56,10 +57,10 @@ export default function ReportPage() {
       const p = data.properties.find((x) => x.id === t.propertyId);
       rows.push([
         t.date,
-        t.kind === "income" ? "収入" : "経費",
+        txLabel(t),
         String(t.amount),
         p?.name || "(削除済み物件)",
-        t.memo || "",
+        (t.memo || "").replace(/\s*\[auto\]\s*/g, "").trim(),
       ]);
     }
     const csv = rows
@@ -147,7 +148,7 @@ export default function ReportPage() {
               className="flex items-center gap-3 bg-white rounded-2xl p-3 mb-2 shadow-sm active:bg-[#FAFAF7]"
             >
               <div className="w-6 text-[14px] font-bold text-[#9B9588] num">{idx + 1}</div>
-              <Thumb src={r.property.photo} size={42} rounded={9} />
+              <Thumb size={42} rounded={9} />
               <div className="flex-1 min-w-0">
                 <div className="text-[13px] font-semibold truncate">{r.property.name}</div>
                 <div className="mt-1.5 h-1 bg-[#F0EDE5] rounded-full overflow-hidden">

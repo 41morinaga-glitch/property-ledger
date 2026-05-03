@@ -191,7 +191,6 @@ const SAMPLE_DATA: AppData = {
       monthlyExpense: 0,
       purchasePrice: 22000000,
       acquiredAt: "2023-04-01",
-      photo: "",
       createdAt: new Date().toISOString(),
     },
     {
@@ -205,7 +204,6 @@ const SAMPLE_DATA: AppData = {
       monthlyExpense: 18000,
       purchasePrice: 35000000,
       acquiredAt: "2024-09-01",
-      photo: "",
       createdAt: new Date().toISOString(),
     },
     {
@@ -218,7 +216,6 @@ const SAMPLE_DATA: AppData = {
       propertyTax: 108000,
       monthlyExpense: 39000,
       purchasePrice: 35000000,
-      photo: "",
       createdAt: new Date().toISOString(),
     },
   ],

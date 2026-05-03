@@ -6,7 +6,7 @@ import type { AutoRecordConfig, Property, PropertyStatus } from "@/lib/types";
 import { DEFAULT_AUTO_RECORD } from "@/lib/types";
 import { actions } from "@/lib/store";
 import { formatYen } from "@/lib/format";
-import { CalIcon, CameraIcon, ChevronLeft, TrashIcon } from "./Icon";
+import { CalIcon, ChevronLeft, TrashIcon } from "./Icon";
 import { Calendar } from "./Calendar";
 
 interface Props {
@@ -20,7 +20,6 @@ export function PropertyForm({ initial, defaultStatus = "owned" }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [status, setStatus] = useState<PropertyStatus>(initial?.status ?? defaultStatus);
   const [address, setAddress] = useState(initial?.address ?? "");
-  const [photo, setPhoto] = useState(initial?.photo ?? "");
   const [rent, setRent] = useState<string>(initial ? String(initial.rent) : "");
   const [monthlyExpense, setMonthlyExpense] = useState<string>(
     initial ? String(initial.monthlyExpense) : "",
@@ -46,17 +45,6 @@ export function PropertyForm({ initial, defaultStatus = "owned" }: Props) {
     setError(null);
   }, [name, rent]);
 
-  const handlePhoto = async (file: File | null) => {
-    if (!file) return;
-    if (file.size > 4 * 1024 * 1024) {
-      setError("画像は4MB以下にしてください");
-      return;
-    }
-    const dataUrl = await fileToDataUrl(file);
-    const resized = await resizeImage(dataUrl, 800);
-    setPhoto(resized);
-  };
-
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -73,7 +61,6 @@ export function PropertyForm({ initial, defaultStatus = "owned" }: Props) {
       name: name.trim(),
       status,
       address: address.trim() || undefined,
-      photo: photo || undefined,
       rent: rentNum,
       monthlyExpense: expNum,
       managementFee: mgmtNum,
@@ -124,8 +111,6 @@ export function PropertyForm({ initial, defaultStatus = "owned" }: Props) {
             検討中
           </Pill>
         </div>
-
-        <PhotoPicker photo={photo} onChange={handlePhoto} onClear={() => setPhoto("")} />
 
         <Field label="物件名">
           <input
@@ -454,80 +439,3 @@ function Pill({
   );
 }
 
-function PhotoPicker({
-  photo,
-  onChange,
-  onClear,
-}: {
-  photo: string;
-  onChange: (f: File | null) => void;
-  onClear: () => void;
-}) {
-  return (
-    <div className="mb-5">
-      <span className="block text-[11px] tracking-[1px] text-[#9B9588] font-semibold mb-1.5 px-1">
-        写真(任意)
-      </span>
-      <label
-        className="block aspect-[16/10] rounded-2xl bg-white shadow-sm relative overflow-hidden cursor-pointer active:scale-[0.99] transition-transform"
-        style={photo ? { backgroundImage: `url(${photo})`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
-      >
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
-        />
-        {!photo && (
-          <div className="absolute inset-0 grid place-items-center text-[#9B9588]">
-            <div className="flex flex-col items-center gap-2">
-              <CameraIcon size={28} />
-              <span className="text-[12px]">タップして写真を選択</span>
-            </div>
-          </div>
-        )}
-        {photo && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              onClear();
-            }}
-            className="absolute top-2 right-2 px-2.5 py-1 rounded-full bg-black/60 text-white text-[11px] font-medium"
-          >
-            削除
-          </button>
-        )}
-      </label>
-    </div>
-  );
-}
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  });
-}
-
-function resizeImage(dataUrl: string, maxDim: number): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const ratio = Math.min(1, maxDim / Math.max(img.width, img.height));
-      const w = Math.round(img.width * ratio);
-      const h = Math.round(img.height * ratio);
-      const c = document.createElement("canvas");
-      c.width = w;
-      c.height = h;
-      const ctx = c.getContext("2d");
-      if (!ctx) return resolve(dataUrl);
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve(c.toDataURL("image/jpeg", 0.82));
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-}

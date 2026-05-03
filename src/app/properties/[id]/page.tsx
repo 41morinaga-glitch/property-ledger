@@ -21,11 +21,10 @@ import {
   formatYen,
   formatYenShort,
 } from "@/lib/format";
-import { ChevronLeft, MoreIcon, PlusIcon, TrashIcon } from "@/components/Icon";
-import { Thumb } from "@/components/Thumb";
+import { ChevronLeft, MapPinIcon, MoreIcon, PlusIcon, TrashIcon } from "@/components/Icon";
 import { RecordSheet, isAuto, stripAutoTag } from "@/components/RecordSheet";
 import { MonthlyBarChart } from "@/components/MonthlyBarChart";
-import type { Transaction } from "@/lib/types";
+import { txLabel, type Transaction } from "@/lib/types";
 
 export default function PropertyDetailPage() {
   const params = useParams<{ id: string }>();
@@ -65,25 +64,18 @@ export default function PropertyDetailPage() {
 
   const recordedTx = [...txs].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 30);
 
+  const mapHref = property.address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(property.address)}`
+    : null;
+
   return (
     <div className="pb-10">
-      <div className="relative">
-        {property.photo ? (
-          <div
-            className="aspect-[16/12] bg-cover bg-center"
-            style={{ backgroundImage: `url(${property.photo})` }}
-          />
-        ) : (
-          <div className="aspect-[16/12] bg-gradient-to-br from-[#E8DFD0] to-[#D4C5A8] grid place-items-center">
-            <Thumb size={80} rounded={20} />
-          </div>
-        )}
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/30 to-transparent pointer-events-none" />
+      <div className="relative flex items-center justify-between px-5 pt-4 pb-2">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="戻る"
-          className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/90 grid place-items-center shadow-md backdrop-blur"
+          className="w-10 h-10 rounded-full bg-white grid place-items-center shadow-sm active:scale-95"
         >
           <ChevronLeft />
         </button>
@@ -91,15 +83,15 @@ export default function PropertyDetailPage() {
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
           aria-label="メニュー"
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 grid place-items-center shadow-md backdrop-blur"
+          className="w-10 h-10 rounded-full bg-white grid place-items-center shadow-sm active:scale-95"
         >
           <MoreIcon />
         </button>
         {menuOpen && (
-          <div className="absolute top-16 right-4 z-30 bg-white rounded-xl shadow-lg overflow-hidden min-w-[180px]">
+          <div className="absolute top-14 right-5 z-30 bg-white rounded-xl shadow-lg overflow-hidden min-w-[180px]">
             <Link
               href={`/properties/${property.id}/edit`}
-              className="block px-4 py-3 text-sm hover:bg-[#F7F5F0] active:bg-[#F0EDE5]"
+              className="block px-4 py-3 text-sm active:bg-[#F0EDE5]"
             >
               編集する
             </Link>
@@ -109,7 +101,7 @@ export default function PropertyDetailPage() {
                   actions.setPropertyStatus(property.id, "considering");
                   setMenuOpen(false);
                 }}
-                className="block w-full text-left px-4 py-3 text-sm hover:bg-[#F7F5F0] active:bg-[#F0EDE5] border-t border-[#F0EDE5]"
+                className="block w-full text-left px-4 py-3 text-sm active:bg-[#F0EDE5] border-t border-[#F0EDE5]"
               >
                 検討中に戻す
               </button>
@@ -119,7 +111,7 @@ export default function PropertyDetailPage() {
                   actions.setPropertyStatus(property.id, "owned");
                   setMenuOpen(false);
                 }}
-                className="block w-full text-left px-4 py-3 text-sm hover:bg-[#F7F5F0] active:bg-[#F0EDE5] border-t border-[#F0EDE5]"
+                className="block w-full text-left px-4 py-3 text-sm active:bg-[#F0EDE5] border-t border-[#F0EDE5]"
               >
                 所有へ移す
               </button>
@@ -136,18 +128,30 @@ export default function PropertyDetailPage() {
             </button>
           </div>
         )}
+      </div>
+
+      <div className="px-6 pt-4">
         {!isOwned && (
-          <span className="absolute bottom-3 left-4 px-2.5 py-1 rounded-full bg-[#4F7CAC] text-white text-[10px] font-bold tracking-wider">
+          <span className="inline-block px-2.5 py-1 rounded-full bg-[#4F7CAC] text-white text-[10px] font-bold tracking-wider mb-3">
             検討中
           </span>
         )}
-      </div>
-
-      <div className="px-6 pt-6">
-        <div className="text-[11px] tracking-[1.5px] text-[#9B9588] font-semibold">
-          {property.address || "—"}
-        </div>
-        <h1 className="text-[24px] font-bold mt-1 tracking-tight">{property.name}</h1>
+        <h1 className="text-[28px] font-bold tracking-tight">{property.name}</h1>
+        {property.address &&
+          (mapHref ? (
+            <a
+              href={mapHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 text-[13px] text-[#4F7CAC] active:opacity-60"
+            >
+              <MapPinIcon size={14} />
+              {property.address}
+              <span className="text-[10px] text-[#9B9588]">マップで開く ↗</span>
+            </a>
+          ) : (
+            <div className="mt-2 text-[13px] text-[#9B9588]">{property.address}</div>
+          ))}
       </div>
 
       <div className="text-center px-6 pt-7 pb-2">
@@ -276,7 +280,7 @@ export default function PropertyDetailPage() {
                   >
                     <div className="min-w-0 flex-1">
                       <div className="text-[13px] font-semibold flex items-center gap-1.5">
-                        {t.kind === "income" ? "家賃" : "経費"}
+                        {txLabel(t)}
                         {auto && (
                           <span className="text-[9px] tracking-wider px-1.5 py-0.5 rounded-full bg-[#F0F4F0] text-[#3D8B4E] font-semibold">
                             自動

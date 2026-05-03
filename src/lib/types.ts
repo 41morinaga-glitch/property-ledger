@@ -35,15 +35,27 @@ export const DEFAULT_AUTO_RECORD: AutoRecordConfig = {
 };
 
 export type TxKind = "income" | "expense";
+export type TxCategory = "main" | "other";
 
 export interface Transaction {
   id: string;
   propertyId: string;
   kind: TxKind;
+  category?: TxCategory;
   amount: number;
   date: string;
   memo?: string;
   createdAt: string;
+}
+
+export function txCategory(t: Transaction): TxCategory {
+  return t.category ?? "main";
+}
+
+export function txLabel(t: Transaction): string {
+  const cat = txCategory(t);
+  if (t.kind === "income") return cat === "other" ? "その他収入" : "家賃";
+  return cat === "other" ? "その他費用" : "経費";
 }
 
 export interface AppData {

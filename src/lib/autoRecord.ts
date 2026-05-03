@@ -64,6 +64,7 @@ export function generateAutoRecords(data: AppData, now: Date = new Date()): Auto
             id: uid(),
             propertyId: p.id,
             kind: "income",
+            category: "main",
             amount: p.rent,
             date,
             memo: `家賃 ${GEN_TAG}`,
@@ -81,6 +82,7 @@ export function generateAutoRecords(data: AppData, now: Date = new Date()): Auto
               id: uid(),
               propertyId: p.id,
               kind: "expense",
+              category: "main",
               amount: expAmt,
               date,
               memo: `毎月の経費 ${GEN_TAG}`,
@@ -129,7 +131,7 @@ function hasMatchingTx(
   const find = (t: Transaction) =>
     t.propertyId === propertyId &&
     t.kind === kind &&
-    t.amount === amount &&
+    (t.category ?? "main") === "main" &&
     t.date.slice(0, 7) === ym;
   return existing.some(find) || pending.some(find);
 }

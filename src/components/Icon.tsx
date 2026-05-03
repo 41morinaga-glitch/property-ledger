@@ -128,6 +128,14 @@ export function CameraIcon({ size = 18, ...rest }: Props) {
     </svg>
   );
 }
+export function MapPinIcon({ size = 14, ...rest }: Props) {
+  return (
+    <svg {...base(size)} {...rest}>
+      <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
 export function MoreIcon({ size = 20, ...rest }: Props) {
   return (
     <svg {...base(size)} {...rest}>

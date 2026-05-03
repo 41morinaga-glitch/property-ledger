@@ -5,7 +5,8 @@ import { actions, useAppData } from "@/lib/store";
 import { formatJpDate, formatYen, todayISO } from "@/lib/format";
 import { CalIcon, BuildingIcon, ChevronRight, DeleteKeyIcon, TrashIcon } from "./Icon";
 import { Calendar } from "./Calendar";
-import type { Transaction } from "@/lib/types";
+import type { Transaction, TxCategory } from "@/lib/types";
+import { txCategory } from "@/lib/types";
 
 interface Props {
   open: boolean;
@@ -19,6 +20,7 @@ export function RecordSheet({ open, onClose, onSaved, defaultPropertyId, edit }:
   const data = useAppData();
   const owned = useMemo(() => data.properties.filter((p) => p.status === "owned"), [data.properties]);
   const [kind, setKind] = useState<"income" | "expense">("income");
+  const [category, setCategory] = useState<TxCategory>("main");
   const [amount, setAmount] = useState<string>("");
   const [propertyId, setPropertyId] = useState<string>("");
   const [date, setDate] = useState<string>(todayISO());
@@ -30,12 +32,14 @@ export function RecordSheet({ open, onClose, onSaved, defaultPropertyId, edit }:
     if (edit) {
       setAmount(String(edit.amount));
       setKind(edit.kind);
+      setCategory(txCategory(edit));
       setDate(edit.date);
       setPropertyId(edit.propertyId);
       setMemo(stripAutoTag(edit.memo ?? ""));
     } else {
       setAmount("");
       setKind("income");
+      setCategory("main");
       setDate(todayISO());
       setPropertyId(defaultPropertyId || owned[0]?.id || "");
       setMemo("");
@@ -77,6 +81,7 @@ export function RecordSheet({ open, onClose, onSaved, defaultPropertyId, edit }:
       actions.updateTransaction(edit.id, {
         propertyId,
         kind,
+        category,
         amount: amountNum,
         date,
         memo: memo.trim() || undefined,
@@ -85,6 +90,7 @@ export function RecordSheet({ open, onClose, onSaved, defaultPropertyId, edit }:
       actions.addTransaction({
         propertyId,
         kind,
+        category,
         amount: amountNum,
         date,
         memo: memo.trim() || undefined,
@@ -126,12 +132,46 @@ export function RecordSheet({ open, onClose, onSaved, defaultPropertyId, edit }:
           </div>
         )}
 
-        <div className="mx-6 mb-5 p-1 flex bg-[#F0EDE5] rounded-xl">
-          <Pill active={kind === "income"} color="#3D8B4E" onClick={() => setKind("income")}>
+        <div className="mx-6 mb-5 p-1 grid grid-cols-2 gap-1 bg-[#F0EDE5] rounded-xl">
+          <Pill
+            active={kind === "income" && category === "main"}
+            color="#3D8B4E"
+            onClick={() => {
+              setKind("income");
+              setCategory("main");
+            }}
+          >
             家賃
           </Pill>
-          <Pill active={kind === "expense"} color="#B85450" onClick={() => setKind("expense")}>
+          <Pill
+            active={kind === "expense" && category === "main"}
+            color="#B85450"
+            onClick={() => {
+              setKind("expense");
+              setCategory("main");
+            }}
+          >
             経費
+          </Pill>
+          <Pill
+            active={kind === "income" && category === "other"}
+            color="#3D8B4E"
+            onClick={() => {
+              setKind("income");
+              setCategory("other");
+            }}
+          >
+            その他収入
+          </Pill>
+          <Pill
+            active={kind === "expense" && category === "other"}
+            color="#B85450"
+            onClick={() => {
+              setKind("expense");
+              setCategory("other");
+            }}
+          >
+            その他費用
           </Pill>
         </div>
 
@@ -177,6 +217,18 @@ export function RecordSheet({ open, onClose, onSaved, defaultPropertyId, edit }:
             </span>
           </button>
         </div>
+
+        {category === "other" && (
+          <div className="px-6 pb-3">
+            <input
+              type="text"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              placeholder={kind === "income" ? "例: 礼金、自販機収入" : "例: 修繕費、不動産取得税"}
+              className="w-full text-[15px] py-3 px-4 bg-white rounded-xl border border-transparent focus:outline-none focus:border-[#1F1F1F]"
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-1.5 px-4">
           {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((k) => (

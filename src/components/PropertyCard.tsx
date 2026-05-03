@@ -30,7 +30,7 @@ export function PropertyCard({ property, monthBalance }: Props) {
       href={`/properties/${property.id}`}
       className="flex items-center gap-3.5 bg-white rounded-2xl p-3 mb-2 shadow-sm active:bg-[#FAFAF7] transition-colors"
     >
-      <Thumb src={property.photo} />
+      <Thumb />
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold truncate flex items-center gap-1.5">
           {property.name}

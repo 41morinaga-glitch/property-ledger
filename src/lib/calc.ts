@@ -78,6 +78,50 @@ export function monthlyCFEstimate(p: Property): number {
   return p.rent - effectiveMonthlyExpense(p);
 }
 
+function monthsBetweenInclusive(startIso: string, now: Date = new Date()): number {
+  const start = new Date(startIso + "T00:00:00");
+  if (isNaN(start.getTime()) || start > now) return 0;
+  const months =
+    (now.getFullYear() - start.getFullYear()) * 12 +
+    (now.getMonth() - start.getMonth()) +
+    1;
+  return Math.max(1, months);
+}
+
+export function trackingMonths(
+  p: Property,
+  propertyTxs: Transaction[],
+  now: Date = new Date(),
+): number {
+  if (propertyTxs.length === 0) return 0;
+  const sorted = [...propertyTxs].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const firstDate = sorted[0].date;
+  const startIso =
+    p.acquiredAt && p.acquiredAt > firstDate ? p.acquiredAt : firstDate;
+  return monthsBetweenInclusive(startIso, now);
+}
+
+export function expectedLifetimeCF(
+  p: Property,
+  propertyTxs: Transaction[],
+  now: Date = new Date(),
+): number {
+  const months = trackingMonths(p, propertyTxs, now);
+  if (months <= 0) return 0;
+  return monthlyCFEstimate(p) * months;
+}
+
+export function achievementRate(
+  p: Property,
+  propertyTxs: Transaction[],
+  now: Date = new Date(),
+): number | null {
+  const expected = expectedLifetimeCF(p, propertyTxs, now);
+  if (expected <= 0) return null;
+  const actual = balance(propertyTxs);
+  return (actual / expected) * 100;
+}
+
 export function ownedTotalMonthlyCF(data: AppData): number {
   return data.properties
     .filter((p) => p.status === "owned")

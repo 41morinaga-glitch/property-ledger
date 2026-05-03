@@ -4,7 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAppData, actions } from "@/lib/store";
 import { currentYm, formatYen, formatYenShort, greeting } from "@/lib/format";
-import { balance, expense, income, monthSummary, monthlyCFEstimate, txByProperty } from "@/lib/calc";
+import {
+  achievementRate,
+  balance,
+  expense,
+  income,
+  monthSummary,
+  monthlyCFEstimate,
+  txByProperty,
+} from "@/lib/calc";
 import { PropertyCard } from "@/components/PropertyCard";
 import { MonthCarousel } from "@/components/MonthCarousel";
 import { ChevronRight } from "@/components/Icon";
@@ -82,8 +90,17 @@ export default function HomePage() {
           <EmptyMini text="まだ物件が登録されていません" />
         ) : (
           owned.map((p) => {
-            const monthBal = monthSummary(txByProperty(data.transactions, p.id), ym).balance;
-            return <PropertyCard key={p.id} property={p} monthBalance={monthBal} />;
+            const propTxs = txByProperty(data.transactions, p.id);
+            const lifetimeBal = balance(propTxs);
+            const rate = achievementRate(p, propTxs);
+            return (
+              <PropertyCard
+                key={p.id}
+                property={p}
+                lifetimeBalance={lifetimeBal}
+                achievementRate={rate}
+              />
+            );
           })
         )}
       </div>

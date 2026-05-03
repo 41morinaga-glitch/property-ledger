@@ -8,20 +8,59 @@ import { Thumb } from "./Thumb";
 
 interface Props {
   property: Property;
+  /** 累計実績残高(累計表示モード) */
+  lifetimeBalance?: number;
+  /** 達成率 % — 累計実績/予想累計CF。null は計算不能(取得日や購入価格が無いなど) */
+  achievementRate?: number | null;
+  /** 月別表示モード。lifetimeBalance が指定されない場合のみ参照 */
   monthBalance?: number;
 }
 
-export function PropertyCard({ property, monthBalance }: Props) {
+export function PropertyCard({
+  property,
+  lifetimeBalance,
+  achievementRate,
+  monthBalance,
+}: Props) {
   const isConsidering = property.status === "considering";
-  const display = isConsidering
-    ? formatYen(monthlyCFEstimate(property), { sign: true })
-    : monthBalance !== undefined
-    ? formatYen(monthBalance, { sign: monthBalance > 0 })
-    : formatYen(monthlyCFEstimate(property), { sign: true });
+
+  let amount: number;
+  let label: string;
+  let labelColor: string | undefined;
+  let labelExtra: { text: string; color: string } | undefined;
+
+  if (isConsidering) {
+    amount = monthlyCFEstimate(property);
+    label = "予想CF/月";
+  } else if (lifetimeBalance !== undefined) {
+    amount = lifetimeBalance;
+    label = "累計";
+    if (achievementRate !== null && achievementRate !== undefined) {
+      const rate = achievementRate;
+      const color =
+        rate >= 100
+          ? "#3D8B4E"
+          : rate >= 80
+          ? "#7AAA85"
+          : rate >= 50
+          ? "#9B9588"
+          : "#B85450";
+      labelExtra = {
+        text: `達成率 ${Math.round(rate)}%`,
+        color,
+      };
+    }
+  } else if (monthBalance !== undefined) {
+    amount = monthBalance;
+    label = "今月";
+  } else {
+    amount = monthlyCFEstimate(property);
+    label = "予想CF/月";
+  }
 
   const color = isConsidering
     ? "#4F7CAC"
-    : (monthBalance ?? monthlyCFEstimate(property)) >= 0
+    : amount >= 0
     ? "#3D8B4E"
     : "#B85450";
 
@@ -50,10 +89,18 @@ export function PropertyCard({ property, monthBalance }: Props) {
       </div>
       <div className="shrink-0 text-right">
         <div className="text-base font-bold num" style={{ color }}>
-          {display}
+          {formatYen(amount, { sign: amount > 0 })}
         </div>
-        <div className="text-[9px] text-[#9B9588] font-medium mt-0.5">
-          {isConsidering ? "予想CF/月" : "今月"}
+        <div className="text-[9px] text-[#9B9588] font-medium mt-0.5 flex items-center justify-end gap-1.5">
+          <span style={labelColor ? { color: labelColor } : undefined}>{label}</span>
+          {labelExtra && (
+            <>
+              <span className="text-[#D8D2C5]">·</span>
+              <span className="num font-bold" style={{ color: labelExtra.color }}>
+                {labelExtra.text}
+              </span>
+            </>
+          )}
         </div>
       </div>
     </Link>

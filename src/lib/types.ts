@@ -58,10 +58,19 @@ export function txLabel(t: Transaction): string {
   return cat === "other" ? "その他費用" : "経費";
 }
 
+export interface AppSettings {
+  fiscalStartMonth: number;
+}
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  fiscalStartMonth: 4,
+};
+
 export interface AppData {
   version: 1;
   properties: Property[];
   transactions: Transaction[];
+  settings?: AppSettings;
   lastModified?: string;
 }
 
@@ -69,4 +78,9 @@ export const EMPTY_DATA: AppData = {
   version: 1,
   properties: [],
   transactions: [],
+  settings: DEFAULT_SETTINGS,
 };
+
+export function getSettings(d: AppData): AppSettings {
+  return { ...DEFAULT_SETTINGS, ...(d.settings ?? {}) };
+}

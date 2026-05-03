@@ -122,6 +122,95 @@ export function achievementRate(
   return (actual / expected) * 100;
 }
 
+export interface FiscalPeriod {
+  startYear: number;
+  startMonthIdx: number;
+  endYear: number;
+  endMonthIdx: number;
+  label: string;
+}
+
+export function fiscalPeriodOf(
+  startMonth: number,
+  now: Date = new Date(),
+): FiscalPeriod {
+  const m = now.getMonth() + 1;
+  const y = now.getFullYear();
+  const startYear = m >= startMonth ? y : y - 1;
+  const endYear = startMonth === 1 ? startYear : startYear + 1;
+  const endMonthIdx = startMonth === 1 ? 11 : startMonth - 2;
+  const label = `${startYear}年${startMonth}月期`;
+  return {
+    startYear,
+    startMonthIdx: startMonth - 1,
+    endYear,
+    endMonthIdx,
+    label,
+  };
+}
+
+export function fiscalMonthYms(period: FiscalPeriod): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(period.startYear, period.startMonthIdx + i, 1);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    out.push(`${yyyy}-${mm}`);
+  }
+  return out;
+}
+
+export function elapsedFiscalMonths(period: FiscalPeriod, now: Date = new Date()): number {
+  const ymsList = fiscalMonthYms(period);
+  const nowYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  let n = 0;
+  for (const y of ymsList) {
+    if (y <= nowYm) n++;
+    else break;
+  }
+  return n;
+}
+
+export interface FiscalAchievement {
+  period: FiscalPeriod;
+  monthsElapsed: number;
+  monthlyExpected: number;
+  expectedSoFar: number;
+  expectedFull: number;
+  actualSoFar: number;
+  rate: number | null;
+  monthSummaries: MonthSummary[];
+}
+
+export function fiscalAchievement(
+  p: Property,
+  propertyTxs: Transaction[],
+  startMonth: number,
+  now: Date = new Date(),
+): FiscalAchievement {
+  const period = fiscalPeriodOf(startMonth, now);
+  const ymsList = fiscalMonthYms(period);
+  const monthsElapsed = elapsedFiscalMonths(period, now);
+  const monthlyExpected = monthlyCFEstimate(p);
+  const expectedSoFar = monthlyExpected * monthsElapsed;
+  const expectedFull = monthlyExpected * 12;
+  const monthSummaries = ymsList.map((ym) => monthSummary(propertyTxs, ym));
+  const actualSoFar = monthSummaries
+    .slice(0, monthsElapsed)
+    .reduce((s, m) => s + m.balance, 0);
+  const rate = expectedSoFar > 0 ? (actualSoFar / expectedSoFar) * 100 : null;
+  return {
+    period,
+    monthsElapsed,
+    monthlyExpected,
+    expectedSoFar,
+    expectedFull,
+    actualSoFar,
+    rate,
+    monthSummaries,
+  };
+}
+
 export function ownedTotalMonthlyCF(data: AppData): number {
   return data.properties
     .filter((p) => p.status === "owned")

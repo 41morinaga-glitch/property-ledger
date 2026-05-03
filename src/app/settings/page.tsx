@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { actions, useAppData } from "@/lib/store";
 import { ChevronLeft } from "@/components/Icon";
-import type { AppData } from "@/lib/types";
+import { getSettings, type AppData } from "@/lib/types";
+import { fiscalPeriodOf } from "@/lib/calc";
 import {
   getLastSyncAt,
   getStoredEmail,
@@ -83,6 +84,10 @@ export default function SettingsPage() {
       </div>
 
       <div className="px-6 pt-4">
+        <Section title="決算期">
+          <FiscalCard data={data} />
+        </Section>
+
         <Section title="クラウド同期">
           <DriveSyncCard onMessage={setMsg} />
         </Section>
@@ -209,6 +214,45 @@ function StatRow({ label, value }: { label: string; value: string }) {
       <div className="text-[13px] text-[#7A6F5C]">{label}</div>
       <div className="text-[14px] font-semibold num">{value}</div>
     </div>
+  );
+}
+
+function FiscalCard({ data }: { data: AppData }) {
+  const settings = getSettings(data);
+  const period = fiscalPeriodOf(settings.fiscalStartMonth);
+  return (
+    <Card>
+      <div className="px-4 pt-4 pb-2">
+        <div className="text-[14px] font-semibold mb-1">決算月の開始</div>
+        <div className="text-[11px] text-[#9B9588] leading-relaxed mb-3">
+          12ヶ月の達成率はこの月から1年間で計算されます。日本の会社員は通常 4月、個人事業主は 1月。
+        </div>
+        <div className="grid grid-cols-6 gap-1.5">
+          {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
+            const active = m === settings.fiscalStartMonth;
+            return (
+              <button
+                key={m}
+                type="button"
+                onClick={() => actions.updateSettings({ fiscalStartMonth: m })}
+                className="py-2 rounded-lg text-[13px] font-semibold num transition-all"
+                style={{
+                  background: active ? "#1F1F1F" : "#F0EDE5",
+                  color: active ? "#FFFFFF" : "#1F1F1F",
+                  boxShadow: active ? "0 2px 6px rgba(31,31,31,0.18)" : "none",
+                }}
+              >
+                {m}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="border-t border-[#F5F2EB] px-4 py-3 text-[11px] text-[#7A6F5C] leading-relaxed num">
+        現在の決算期: <span className="font-semibold text-[#1F1F1F]">{period.label}</span>(
+        {period.startYear}年{period.startMonthIdx + 1}月 〜 {period.endYear}年{period.endMonthIdx + 1}月)
+      </div>
+    </Card>
   );
 }
 

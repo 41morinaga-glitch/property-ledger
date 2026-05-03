@@ -5,14 +5,15 @@ import Link from "next/link";
 import { useAppData, actions } from "@/lib/store";
 import { currentYm, formatYen, formatYenShort, greeting } from "@/lib/format";
 import {
-  achievementRate,
   balance,
   expense,
+  fiscalAchievement,
   income,
   monthSummary,
   monthlyCFEstimate,
   txByProperty,
 } from "@/lib/calc";
+import { getSettings } from "@/lib/types";
 import { PropertyCard } from "@/components/PropertyCard";
 import { MonthCarousel } from "@/components/MonthCarousel";
 import { ChevronRight } from "@/components/Icon";
@@ -92,13 +93,14 @@ export default function HomePage() {
           owned.map((p) => {
             const propTxs = txByProperty(data.transactions, p.id);
             const lifetimeBal = balance(propTxs);
-            const rate = achievementRate(p, propTxs);
+            const fy = fiscalAchievement(p, propTxs, getSettings(data).fiscalStartMonth);
             return (
               <PropertyCard
                 key={p.id}
                 property={p}
                 lifetimeBalance={lifetimeBal}
-                achievementRate={rate}
+                achievementRate={fy.rate}
+                achievementLabel="決算期"
               />
             );
           })

@@ -1,7 +1,14 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { EMPTY_DATA, type AppData, type Property, type Transaction } from "./types";
+import {
+  DEFAULT_SETTINGS,
+  EMPTY_DATA,
+  type AppData,
+  type AppSettings,
+  type Property,
+  type Transaction,
+} from "./types";
 import { generateAutoRecords } from "./autoRecord";
 
 const STORAGE_KEY = "property-ledger:v1";
@@ -132,6 +139,13 @@ export const actions = {
 
   importData(data: AppData) {
     update(() => ({ ...EMPTY_DATA, ...data, version: 1 }));
+  },
+
+  updateSettings(patch: Partial<AppSettings>) {
+    update((d) => ({
+      ...d,
+      settings: { ...DEFAULT_SETTINGS, ...(d.settings ?? {}), ...patch },
+    }));
   },
 
   replaceFromRemote(data: AppData) {

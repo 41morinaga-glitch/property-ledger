@@ -10,8 +10,10 @@ interface Props {
   property: Property;
   /** 累計実績残高(累計表示モード) */
   lifetimeBalance?: number;
-  /** 達成率 % — 累計実績/予想累計CF。null は計算不能(取得日や購入価格が無いなど) */
+  /** 達成率 % — null は計算不能(取得日や購入価格が無いなど) */
   achievementRate?: number | null;
+  /** 達成率のラベル接頭辞(例: "決算期" / "累計") */
+  achievementLabel?: string;
   /** 月別表示モード。lifetimeBalance が指定されない場合のみ参照 */
   monthBalance?: number;
 }
@@ -20,13 +22,13 @@ export function PropertyCard({
   property,
   lifetimeBalance,
   achievementRate,
+  achievementLabel = "達成率",
   monthBalance,
 }: Props) {
   const isConsidering = property.status === "considering";
 
   let amount: number;
   let label: string;
-  let labelColor: string | undefined;
   let labelExtra: { text: string; color: string } | undefined;
 
   if (isConsidering) {
@@ -46,7 +48,7 @@ export function PropertyCard({
           ? "#9B9588"
           : "#B85450";
       labelExtra = {
-        text: `達成率 ${Math.round(rate)}%`,
+        text: `${achievementLabel} ${Math.round(rate)}%`,
         color,
       };
     }
@@ -92,7 +94,7 @@ export function PropertyCard({
           {formatYen(amount, { sign: amount > 0 })}
         </div>
         <div className="text-[9px] text-[#9B9588] font-medium mt-0.5 flex items-center justify-end gap-1.5">
-          <span style={labelColor ? { color: labelColor } : undefined}>{label}</span>
+          <span>{label}</span>
           {labelExtra && (
             <>
               <span className="text-[#D8D2C5]">·</span>

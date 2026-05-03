@@ -7,6 +7,7 @@ import { actions, useAppData } from "@/lib/store";
 import {
   balance,
   effectiveMonthlyExpense,
+  fiscalAchievement,
   grossYield,
   last12Months,
   monthlyCFEstimate,
@@ -14,6 +15,7 @@ import {
   netYield,
   txByProperty,
 } from "@/lib/calc";
+import { getSettings } from "@/lib/types";
 import {
   currentYm,
   formatJpDate,
@@ -24,6 +26,7 @@ import {
 import { ChevronLeft, MapPinIcon, MoreIcon, PlusIcon, TrashIcon } from "@/components/Icon";
 import { RecordSheet, isAuto, stripAutoTag } from "@/components/RecordSheet";
 import { MonthlyBarChart } from "@/components/MonthlyBarChart";
+import { FiscalYearProgress } from "@/components/FiscalYearProgress";
 import { txLabel, type Transaction } from "@/lib/types";
 
 export default function PropertyDetailPage() {
@@ -40,6 +43,14 @@ export default function PropertyDetailPage() {
   const txs = useMemo(
     () => (property ? txByProperty(data.transactions, property.id) : []),
     [data.transactions, property],
+  );
+
+  const fy = useMemo(
+    () =>
+      property
+        ? fiscalAchievement(property, txs, getSettings(data).fiscalStartMonth)
+        : null,
+    [property, txs, data],
   );
 
   if (!property) {
@@ -230,6 +241,12 @@ export default function PropertyDetailPage() {
           <Row label="取得日" value={formatJpDate(property.acquiredAt)} last />
         )}
       </div>
+
+      {isOwned && fy && (
+        <div className="mx-6 mb-6">
+          <FiscalYearProgress fa={fy} />
+        </div>
+      )}
 
       {isOwned && (
         <>

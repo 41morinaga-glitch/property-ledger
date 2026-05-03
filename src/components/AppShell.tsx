@@ -1,10 +1,11 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChartIcon, GridIcon, HomeIcon, PlusIcon } from "./Icon";
 import { RecordSheet } from "./RecordSheet";
+import { actions } from "@/lib/store";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -14,6 +15,10 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [recordOpen, setRecordOpen] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    actions.runAutoRecord();
+  }, []);
 
   const isFormPage =
     pathname === "/properties/new" ||

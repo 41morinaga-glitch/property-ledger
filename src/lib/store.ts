@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { EMPTY_DATA, type AppData, type Property, type Transaction } from "./types";
+import { generateAutoRecords } from "./autoRecord";
 
 const STORAGE_KEY = "property-ledger:v1";
 const SEED_KEY = "property-ledger:seeded";
@@ -139,6 +140,21 @@ export const actions = {
   loadSample() {
     update(() => SAMPLE_DATA);
     if (typeof window !== "undefined") localStorage.setItem(SEED_KEY, "1");
+  },
+
+  runAutoRecord(): { added: number } {
+    const current = getSnapshot();
+    const { added, updatedProperties } = generateAutoRecords(current);
+    if (added.length === 0 && updatedProperties.length === 0) return { added: 0 };
+    update((d) => {
+      const propIndex = new Map(updatedProperties.map((p) => [p.id, p]));
+      return {
+        ...d,
+        properties: d.properties.map((p) => propIndex.get(p.id) ?? p),
+        transactions: [...d.transactions, ...added],
+      };
+    });
+    return { added: added.length };
   },
 };
 

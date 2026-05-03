@@ -7,6 +7,7 @@ import { balance, monthSummary, txByProperty, ytd } from "@/lib/calc";
 import { formatYen, formatYenShort } from "@/lib/format";
 import { Thumb } from "@/components/Thumb";
 import { DownloadIcon } from "@/components/Icon";
+import { CumulativeChart, type CumulativePoint } from "@/components/CumulativeChart";
 
 export default function ReportPage() {
   const data = useAppData();
@@ -41,13 +42,10 @@ export default function ReportPage() {
   const maxRank = Math.max(1, ...ranking.map((r) => Math.abs(r.balance)));
 
   let cum = 0;
-  const cumulative = months.map((m) => {
+  const cumulative: CumulativePoint[] = months.map((m) => {
     cum += m.balance;
-    return { ym: m.ym, cum };
+    return { ym: m.ym, cum, monthBalance: m.balance };
   });
-  const maxCum = Math.max(1, ...cumulative.map((c) => Math.abs(c.cum)));
-  const minCum = Math.min(0, ...cumulative.map((c) => c.cum));
-  const cumRange = Math.max(1, maxCum - minCum);
 
   const exportCSV = () => {
     const rows = [["日付", "種別", "金額", "物件", "メモ"]];
@@ -129,37 +127,8 @@ export default function ReportPage() {
         </div>
       </div>
 
-      <div className="mx-6 mb-6 bg-white rounded-2xl p-4 shadow-sm">
-        <div className="text-[11px] tracking-[1.5px] text-[#9B9588] font-semibold mb-3">
-          月別の累計推移
-        </div>
-        <div className="relative h-32">
-          <svg
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            className="absolute inset-0 w-full h-full"
-          >
-            <line x1="0" y1={(maxCum / cumRange) * 100} x2="100" y2={(maxCum / cumRange) * 100} stroke="#EFEBE3" strokeWidth="0.5" />
-            <polyline
-              fill="none"
-              stroke="#3D8B4E"
-              strokeWidth="1.5"
-              vectorEffect="non-scaling-stroke"
-              points={cumulative
-                .map((c, i) => {
-                  const x = (i / (cumulative.length - 1 || 1)) * 100;
-                  const y = ((maxCum - c.cum) / cumRange) * 100;
-                  return `${x},${y}`;
-                })
-                .join(" ")}
-            />
-          </svg>
-          <div className="absolute inset-x-0 bottom-0 flex justify-between text-[9px] text-[#9B9588] num">
-            <span>1月</span>
-            <span>6月</span>
-            <span>12月</span>
-          </div>
-        </div>
+      <div className="px-6 mb-6">
+        <CumulativeChart points={cumulative} height={220} />
       </div>
 
       <div className="px-7 mb-3 text-[11px] tracking-[1.5px] text-[#9B9588] font-semibold">

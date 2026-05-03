@@ -23,13 +23,16 @@ import {
 } from "@/lib/format";
 import { ChevronLeft, MoreIcon, PlusIcon, TrashIcon } from "@/components/Icon";
 import { Thumb } from "@/components/Thumb";
-import { RecordSheet } from "@/components/RecordSheet";
+import { RecordSheet, isAuto, stripAutoTag } from "@/components/RecordSheet";
+import { MonthlyBarChart } from "@/components/MonthlyBarChart";
+import type { Transaction } from "@/lib/types";
 
 export default function PropertyDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const data = useAppData();
   const [recordOpen, setRecordOpen] = useState(false);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const property = data.properties.find((p) => p.id === params.id);
@@ -56,7 +59,6 @@ export default function PropertyDetailPage() {
   const lifetimeBalance = balance(txs);
 
   const monthly12 = last12Months(txs, ym);
-  const max12 = Math.max(1, ...monthly12.map((m) => Math.abs(m.balance)));
 
   const projectedMonthly = monthlyCFEstimate(property);
   const projected30y = projectedMonthly * 12 * 30;
@@ -235,31 +237,8 @@ export default function PropertyDetailPage() {
               累計 <span className="text-[#3D8B4E] font-semibold">{formatYen(lifetimeBalance, { sign: lifetimeBalance > 0 })}</span>
             </div>
           </div>
-          <div className="mx-6 bg-white rounded-2xl p-4 shadow-sm mb-6">
-            <div className="flex items-end gap-1.5 h-32">
-              {monthly12.map((m) => {
-                const h = (Math.abs(m.balance) / max12) * 100;
-                const positive = m.balance >= 0;
-                return (
-                  <div key={m.ym} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="w-full h-full flex flex-col justify-end">
-                      <div
-                        className="rounded-t-md w-full"
-                        style={{
-                          height: `${Math.max(2, h)}%`,
-                          background: positive ? "#86C998" : "#E8B4A6",
-                          minHeight: 4,
-                        }}
-                      />
-                    </div>
-                    <div className="text-[9px] text-[#9B9588] num">{Number(m.ym.slice(5))}</div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-3 text-center text-[10px] text-[#9B9588]">
-              この物件の月別収支(緑=プラス・コーラル=マイナス)
-            </div>
+          <div className="mx-6 mb-6">
+            <MonthlyBarChart data={monthly12} height={200} />
           </div>
         </>
       )}
@@ -283,43 +262,42 @@ export default function PropertyDetailPage() {
             </div>
           ) : (
             <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
-              {recordedTx.map((t, i) => (
-                <div
-                  key={t.id}
-                  className={`flex items-center justify-between px-4 py-3 ${
-                    i < recordedTx.length - 1 ? "border-b border-[#F5F2EB]" : ""
-                  }`}
-                >
-                  <div>
-                    <div className="text-[13px] font-semibold">
-                      {t.kind === "income" ? "家賃" : "経費"}
+              {recordedTx.map((t, i) => {
+                const auto = isAuto(t);
+                const cleanMemo = stripAutoTag(t.memo ?? "");
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setEditingTx(t)}
+                    className={`w-full text-left flex items-center justify-between px-4 py-3 active:bg-[#FAFAF7] ${
+                      i < recordedTx.length - 1 ? "border-b border-[#F5F2EB]" : ""
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-semibold flex items-center gap-1.5">
+                        {t.kind === "income" ? "家賃" : "経費"}
+                        {auto && (
+                          <span className="text-[9px] tracking-wider px-1.5 py-0.5 rounded-full bg-[#F0F4F0] text-[#3D8B4E] font-semibold">
+                            自動
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-[#9B9588] mt-0.5">
+                        {formatJpDate(t.date)}
+                        {cleanMemo ? ` · ${cleanMemo}` : ""}
+                      </div>
                     </div>
-                    <div className="text-[10px] text-[#9B9588] mt-0.5">
-                      {formatJpDate(t.date)}
-                      {t.memo ? ` · ${t.memo}` : ""}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
                     <div
-                      className="text-[14px] font-bold num"
+                      className="text-[15px] font-bold num shrink-0 ml-3"
                       style={{ color: t.kind === "income" ? "#3D8B4E" : "#B85450" }}
                     >
                       {t.kind === "income" ? "+" : "-"}
                       {formatYen(t.amount)}
                     </div>
-                    <button
-                      onClick={() => {
-                        if (!confirm("この記録を削除しますか?")) return;
-                        actions.deleteTransaction(t.id);
-                      }}
-                      aria-label="削除"
-                      className="text-[#9B9588] active:text-[#B85450]"
-                    >
-                      <TrashIcon size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -366,6 +344,12 @@ export default function PropertyDetailPage() {
         onClose={() => setRecordOpen(false)}
         onSaved={() => setRecordOpen(false)}
         defaultPropertyId={property.id}
+      />
+      <RecordSheet
+        open={editingTx !== null}
+        onClose={() => setEditingTx(null)}
+        onSaved={() => setEditingTx(null)}
+        edit={editingTx ?? undefined}
       />
     </div>
   );

@@ -32,8 +32,18 @@ export function PropertyCard({ property, monthBalance }: Props) {
     >
       <Thumb src={property.photo} />
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold truncate">{property.name}</div>
-        <div className="text-[10px] text-[#9B9588] mt-0.5">
+        <div className="text-sm font-semibold truncate flex items-center gap-1.5">
+          {property.name}
+          {property.autoRecord?.enabled && (
+            <span
+              className="text-[9px] font-semibold tracking-wider px-1.5 py-0.5 rounded-full bg-[#F0F4F0] text-[#3D8B4E]"
+              title="毎月の自動記録ON"
+            >
+              自動
+            </span>
+          )}
+        </div>
+        <div className="text-[10px] text-[#9B9588] mt-0.5 num">
           家賃 {formatYen(property.rent)}
           {isConsidering && " (想定)"}
         </div>

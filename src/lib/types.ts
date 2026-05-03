@@ -14,7 +14,25 @@ export interface Property {
   acquiredAt?: string;
   note?: string;
   createdAt: string;
+  autoRecord?: AutoRecordConfig;
 }
+
+export interface AutoRecordConfig {
+  enabled: boolean;
+  rentDay: number;
+  expenseDay: number;
+  rent: boolean;
+  expense: boolean;
+  lastGeneratedYm?: string;
+}
+
+export const DEFAULT_AUTO_RECORD: AutoRecordConfig = {
+  enabled: false,
+  rentDay: 27,
+  expenseDay: 1,
+  rent: true,
+  expense: true,
+};
 
 export type TxKind = "income" | "expense";
 

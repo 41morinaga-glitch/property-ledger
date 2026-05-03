@@ -3,32 +3,45 @@
 import { useEffect, useMemo, useState } from "react";
 import { actions, useAppData } from "@/lib/store";
 import { formatJpDate, formatYen, todayISO } from "@/lib/format";
-import { CalIcon, BuildingIcon, ChevronRight, DeleteKeyIcon } from "./Icon";
+import { CalIcon, BuildingIcon, ChevronRight, DeleteKeyIcon, TrashIcon } from "./Icon";
+import { Calendar } from "./Calendar";
+import type { Transaction } from "@/lib/types";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   defaultPropertyId?: string;
+  edit?: Transaction;
 }
 
-export function RecordSheet({ open, onClose, onSaved, defaultPropertyId }: Props) {
+export function RecordSheet({ open, onClose, onSaved, defaultPropertyId, edit }: Props) {
   const data = useAppData();
   const owned = useMemo(() => data.properties.filter((p) => p.status === "owned"), [data.properties]);
   const [kind, setKind] = useState<"income" | "expense">("income");
   const [amount, setAmount] = useState<string>("");
   const [propertyId, setPropertyId] = useState<string>("");
   const [date, setDate] = useState<string>(todayISO());
+  const [memo, setMemo] = useState<string>("");
   const [showPicker, setShowPicker] = useState<"property" | "date" | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setAmount("");
-    setKind("income");
-    setDate(todayISO());
-    setPropertyId(defaultPropertyId || owned[0]?.id || "");
+    if (edit) {
+      setAmount(String(edit.amount));
+      setKind(edit.kind);
+      setDate(edit.date);
+      setPropertyId(edit.propertyId);
+      setMemo(stripAutoTag(edit.memo ?? ""));
+    } else {
+      setAmount("");
+      setKind("income");
+      setDate(todayISO());
+      setPropertyId(defaultPropertyId || owned[0]?.id || "");
+      setMemo("");
+    }
     setShowPicker(null);
-  }, [open, defaultPropertyId, owned]);
+  }, [open, edit, defaultPropertyId, owned]);
 
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -60,12 +73,30 @@ export function RecordSheet({ open, onClose, onSaved, defaultPropertyId }: Props
 
   const handleSave = () => {
     if (!canSave) return;
-    actions.addTransaction({
-      propertyId,
-      kind,
-      amount: amountNum,
-      date,
-    });
+    if (edit) {
+      actions.updateTransaction(edit.id, {
+        propertyId,
+        kind,
+        amount: amountNum,
+        date,
+        memo: memo.trim() || undefined,
+      });
+    } else {
+      actions.addTransaction({
+        propertyId,
+        kind,
+        amount: amountNum,
+        date,
+        memo: memo.trim() || undefined,
+      });
+    }
+    onSaved();
+  };
+
+  const handleDelete = () => {
+    if (!edit) return;
+    if (!confirm("この記録を削除しますか?")) return;
+    actions.deleteTransaction(edit.id);
     onSaved();
   };
 
@@ -84,11 +115,16 @@ export function RecordSheet({ open, onClose, onSaved, defaultPropertyId }: Props
       >
         <div className="w-9 h-1 bg-[#C0BBB0] rounded-full mx-auto mb-2" />
         <div className="flex items-center justify-between px-6 pt-3 pb-4">
-          <div className="text-[17px] font-bold">記録する</div>
+          <div className="text-[17px] font-bold">{edit ? "記録を編集" : "記録する"}</div>
           <button onClick={onClose} className="text-[#9B9588] text-sm font-medium">
             キャンセル
           </button>
         </div>
+        {edit && isAuto(edit) && (
+          <div className="mx-6 mb-3 px-3 py-2 rounded-lg bg-[#F0F4F0] text-[#3D8B4E] text-[11px] leading-snug">
+            この記録は <strong>毎月の自動記録</strong> で作成されました。金額を変更するとこの月だけ上書きされます(翌月以降は通常通り自動記録)。
+          </div>
+        )}
 
         <div className="mx-6 mb-5 p-1 flex bg-[#F0EDE5] rounded-xl">
           <Pill active={kind === "income"} color="#3D8B4E" onClick={() => setKind("income")}>
@@ -163,8 +199,18 @@ export function RecordSheet({ open, onClose, onSaved, defaultPropertyId }: Props
           className="mx-4 mt-3.5 py-4 rounded-2xl text-white text-[15px] font-semibold shadow-[0_8px_20px_rgba(31,31,31,0.2)] disabled:opacity-50 w-[calc(100%-2rem)]"
           style={{ background: "#1F1F1F" }}
         >
-          保存
+          {edit ? "更新" : "保存"}
         </button>
+
+        {edit && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="w-full mt-2 py-3 rounded-xl text-[#B85450] text-[13px] font-semibold flex items-center justify-center gap-1.5 active:bg-[#FCE8E5]/50"
+          >
+            <TrashIcon size={14} /> この記録を削除
+          </button>
+        )}
 
         {showPicker === "property" && (
           <PickerOverlay onClose={() => setShowPicker(null)} title="物件を選択">
@@ -191,22 +237,9 @@ export function RecordSheet({ open, onClose, onSaved, defaultPropertyId }: Props
         )}
 
         {showPicker === "date" && (
-          <PickerOverlay onClose={() => setShowPicker(null)} title="日付を選択">
-            <div className="px-5 py-5">
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full text-[16px] py-3 px-3 bg-white rounded-xl border border-[#EFEBE3] focus:outline-none focus:border-[#1F1F1F]"
-              />
-              <button
-                className="mt-4 w-full py-3 rounded-xl bg-[#1F1F1F] text-white font-semibold"
-                onClick={() => setShowPicker(null)}
-              >
-                決定
-              </button>
-            </div>
-          </PickerOverlay>
+          <CalendarOverlay onClose={() => setShowPicker(null)}>
+            <Calendar value={date} onChange={setDate} onClose={() => setShowPicker(null)} />
+          </CalendarOverlay>
         )}
       </div>
     </div>
@@ -293,6 +326,34 @@ function PickerOverlay({
         </div>
         {children}
       </div>
+    </div>
+  );
+}
+
+export function isAuto(t: Transaction): boolean {
+  return !!t.memo && t.memo.includes("[auto]");
+}
+
+export function stripAutoTag(memo: string): string {
+  return memo.replace(/\s*\[auto\]\s*/g, "").trim();
+}
+
+function CalendarOverlay({
+  onClose,
+  children,
+}: {
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="absolute inset-0 z-10 flex items-end animate-fade-in">
+      <button
+        type="button"
+        aria-label="閉じる"
+        className="absolute inset-0 bg-black/30"
+        onClick={onClose}
+      />
+      <div className="relative w-full animate-slide-up">{children}</div>
     </div>
   );
 }

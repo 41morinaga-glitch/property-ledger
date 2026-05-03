@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { Property } from "@/lib/types";
 import { formatYen } from "@/lib/format";
 import { monthlyCFEstimate } from "@/lib/calc";
-import { Thumb } from "./Thumb";
 
 interface Props {
   property: Property;
@@ -69,9 +68,8 @@ export function PropertyCard({
   return (
     <Link
       href={`/properties/${property.id}`}
-      className="flex items-center gap-3.5 bg-white rounded-2xl p-3 mb-2 shadow-sm active:bg-[#FAFAF7] transition-colors"
+      className="flex items-center gap-3.5 bg-white rounded-2xl px-4 py-3.5 mb-2 shadow-sm active:bg-[#FAFAF7] transition-colors"
     >
-      <Thumb />
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold truncate flex items-center gap-1.5">
           {property.name}

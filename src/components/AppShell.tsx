@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChartIcon, GridIcon, HomeIcon, PlusIcon } from "./Icon";
 import { RecordSheet } from "./RecordSheet";
-import { actions } from "@/lib/store";
+import { actions, useAppData } from "@/lib/store";
+import { schedulePush, syncOnce } from "@/lib/sync";
+import { isSignedIn } from "@/lib/drive";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -16,9 +18,19 @@ export function AppShell({ children }: AppShellProps) {
   const [recordOpen, setRecordOpen] = useState(false);
   const router = useRouter();
 
+  const data = useAppData();
+
   useEffect(() => {
     actions.runAutoRecord();
+    if (isSignedIn()) {
+      syncOnce();
+    }
   }, []);
+
+  useEffect(() => {
+    if (!data.lastModified) return;
+    schedulePush();
+  }, [data.lastModified]);
 
   const isFormPage =
     pathname === "/properties/new" ||

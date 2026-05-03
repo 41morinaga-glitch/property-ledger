@@ -50,6 +50,7 @@ export interface AppData {
   version: 1;
   properties: Property[];
   transactions: Transaction[];
+  lastModified?: string;
 }
 
 export const EMPTY_DATA: AppData = {

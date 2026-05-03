@@ -1,10 +1,19 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { actions, useAppData } from "@/lib/store";
 import { ChevronLeft } from "@/components/Icon";
 import type { AppData } from "@/lib/types";
+import {
+  getLastSyncAt,
+  getStoredEmail,
+  isConfigured,
+  isSignedIn,
+  signIn,
+  signOut,
+} from "@/lib/drive";
+import { forcePullRemote, forcePushLocal, resetSyncState, syncOnce } from "@/lib/sync";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -74,6 +83,10 @@ export default function SettingsPage() {
       </div>
 
       <div className="px-6 pt-4">
+        <Section title="クラウド同期">
+          <DriveSyncCard onMessage={setMsg} />
+        </Section>
+
         <Section title="データ">
           <Card>
             <Item
@@ -196,5 +209,216 @@ function StatRow({ label, value }: { label: string; value: string }) {
       <div className="text-[13px] text-[#7A6F5C]">{label}</div>
       <div className="text-[14px] font-semibold num">{value}</div>
     </div>
+  );
+}
+
+function DriveSyncCard({ onMessage }: { onMessage: (m: string) => void }) {
+  const [signedIn, setSignedIn] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
+  const [lastSync, setLastSync] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const refresh = () => {
+    setSignedIn(isSignedIn());
+    setEmail(getStoredEmail());
+    setLastSync(getLastSyncAt());
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  if (!isConfigured()) {
+    return (
+      <Card>
+        <div className="px-4 py-4">
+          <div className="text-[14px] font-semibold mb-1">Google Drive 同期は未設定</div>
+          <div className="text-[11px] text-[#9B9588] leading-relaxed">
+            管理者がデプロイ時に Google OAuth クライアントID(<code className="text-[10px]">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>)を設定する必要があります。設定後、ここから Google アカウントでサインインしてデバイス間で同期できます。
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  const handleSignIn = async () => {
+    setLoading(true);
+    try {
+      await signIn();
+      refresh();
+      const r = await syncOnce();
+      if (r.status === "ok") {
+        if (r.direction === "pulled") onMessage("Driveから読み込みました");
+        else if (r.direction === "pushed") onMessage("Driveに保存しました");
+        else onMessage("同期OK(変更なし)");
+      } else if (r.status === "error") {
+        onMessage(`同期エラー: ${r.message}`);
+      } else if (r.status === "conflict") {
+        onMessage("ローカルとクラウドの両方に変更があります。手動で同期してください。");
+      }
+      refresh();
+    } catch (e) {
+      onMessage(`サインイン失敗: ${e instanceof Error ? e.message : "不明"}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (!confirm("Google アカウントからサインアウトしますか?ローカルデータはこの端末に残ります。")) return;
+    setLoading(true);
+    try {
+      await signOut();
+      resetSyncState();
+      refresh();
+      onMessage("サインアウトしました");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSync = async () => {
+    setLoading(true);
+    try {
+      const r = await syncOnce();
+      if (r.status === "ok") {
+        if (r.direction === "pulled") onMessage("Driveから読み込みました");
+        else if (r.direction === "pushed") onMessage("Driveに保存しました");
+        else onMessage("同期OK(変更なし)");
+      } else if (r.status === "error") {
+        onMessage(`同期エラー: ${r.message}`);
+      } else if (r.status === "conflict") {
+        onMessage("ローカルとクラウドに同時変更あり。下のボタンでどちらを採用するか選んでください");
+      }
+      refresh();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePush = async () => {
+    if (!confirm("ローカルのデータでクラウドを上書きします。よろしいですか?")) return;
+    setLoading(true);
+    const r = await forcePushLocal();
+    onMessage(r.status === "ok" ? "クラウドに上書きしました" : `失敗: ${r.message ?? ""}`);
+    refresh();
+    setLoading(false);
+  };
+
+  const handlePull = async () => {
+    if (!confirm("クラウドのデータでローカルを上書きします。よろしいですか?")) return;
+    setLoading(true);
+    const r = await forcePullRemote();
+    onMessage(r.status === "ok" ? "クラウドから読み込みました" : `失敗: ${r.message ?? ""}`);
+    refresh();
+    setLoading(false);
+  };
+
+  return (
+    <Card>
+      {!signedIn ? (
+        <div className="px-4 py-5">
+          <div className="text-[14px] font-semibold mb-1">他のデバイスとデータを共有</div>
+          <div className="text-[11px] text-[#9B9588] leading-relaxed mb-4">
+            ご自身の Google Drive にデータを保存します。製作者は内容を見ることができません(専用フォルダ <code className="text-[10px]">drive.appdata</code> のみアクセス)。
+          </div>
+          <button
+            type="button"
+            onClick={handleSignIn}
+            disabled={loading}
+            className="w-full py-3.5 rounded-xl bg-white border border-[#D8D2C5] text-[14px] font-semibold flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-50"
+          >
+            <GoogleIcon />
+            <span>{loading ? "サインイン中…" : "Google でサインイン"}</span>
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="px-4 py-4 border-b border-[#F5F2EB]">
+            <div className="flex items-center gap-3">
+              <GoogleIcon />
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-semibold truncate">{email ?? "Google アカウント"}</div>
+                <div className="text-[10px] text-[#9B9588] mt-0.5">
+                  最終同期 {lastSync ? formatRelative(lastSync) : "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleSync}
+            disabled={loading}
+            className="w-full text-left px-4 py-3.5 border-b border-[#F5F2EB] active:bg-[#FAFAF7] disabled:opacity-50"
+          >
+            <div className="text-[14px] font-semibold">いま同期する</div>
+            <div className="text-[11px] text-[#9B9588] mt-0.5">差分があれば自動的にやり取りします</div>
+          </button>
+          <button
+            type="button"
+            onClick={handlePush}
+            disabled={loading}
+            className="w-full text-left px-4 py-3.5 border-b border-[#F5F2EB] active:bg-[#FAFAF7] disabled:opacity-50"
+          >
+            <div className="text-[14px] font-semibold">この端末を優先してクラウドへ送る</div>
+            <div className="text-[11px] text-[#9B9588] mt-0.5">クラウド側を上書きします</div>
+          </button>
+          <button
+            type="button"
+            onClick={handlePull}
+            disabled={loading}
+            className="w-full text-left px-4 py-3.5 border-b border-[#F5F2EB] active:bg-[#FAFAF7] disabled:opacity-50"
+          >
+            <div className="text-[14px] font-semibold">クラウドを優先してこの端末に取り込む</div>
+            <div className="text-[11px] text-[#9B9588] mt-0.5">この端末を上書きします</div>
+          </button>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            disabled={loading}
+            className="w-full text-left px-4 py-3.5 active:bg-[#FAFAF7] disabled:opacity-50"
+          >
+            <div className="text-[14px] font-semibold text-[#B85450]">サインアウト</div>
+            <div className="text-[11px] text-[#9B9588] mt-0.5">ローカルデータはこの端末に残ります</div>
+          </button>
+        </>
+      )}
+    </Card>
+  );
+}
+
+function formatRelative(iso: string): string {
+  const t = Date.parse(iso);
+  if (!t) return iso;
+  const diff = Date.now() - t;
+  const min = Math.round(diff / 60000);
+  if (min < 1) return "たった今";
+  if (min < 60) return `${min}分前`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${h}時間前`;
+  const d = Math.round(h / 24);
+  return `${d}日前`;
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path
+        fill="#FFC107"
+        d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"
+      />
+      <path
+        fill="#FF3D00"
+        d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"
+      />
+      <path
+        fill="#4CAF50"
+        d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.6 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"
+      />
+      <path
+        fill="#1976D2"
+        d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.4-4.2 5.8l6.2 5.2C40.7 35.8 44 30.3 44 24c0-1.2-.1-2.4-.4-3.5z"
+      />
+    </svg>
   );
 }

@@ -56,8 +56,10 @@ function subscribe(cb: () => void): () => void {
   };
 }
 
-function update(mut: (d: AppData) => AppData) {
-  const next = mut(getSnapshot());
+function update(mut: (d: AppData) => AppData, opts: { touch?: boolean } = {}) {
+  const raw = mut(getSnapshot());
+  const next: AppData =
+    opts.touch === false ? raw : { ...raw, lastModified: new Date().toISOString() };
   cache = next;
   writeToStorage(next);
   emit();
@@ -130,6 +132,14 @@ export const actions = {
 
   importData(data: AppData) {
     update(() => ({ ...EMPTY_DATA, ...data, version: 1 }));
+  },
+
+  replaceFromRemote(data: AppData) {
+    update(() => ({ ...EMPTY_DATA, ...data, version: 1 }), { touch: false });
+  },
+
+  getCurrent(): AppData {
+    return getSnapshot();
   },
 
   reset() {

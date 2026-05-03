@@ -303,9 +303,121 @@ function AutoRecordSection({
             amount={propertyTax}
           />
 
+          <CustomYearlyRow value={value} onChange={onChange} />
+
           <div className="text-[11px] text-[#9B9588] leading-relaxed pt-1">
             ※ 同期間内に既に同種の記録があれば、自動記録は重複しません。
             <br />※ 自動生成された記録もタップで個別に編集・削除できます。
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CustomYearlyRow({
+  value,
+  onChange,
+}: {
+  value: AutoRecordConfig;
+  onChange: (cfg: AutoRecordConfig) => void;
+}) {
+  const on = value.customYearly ?? false;
+  const kind: "income" | "expense" = value.customYearlyKind ?? "expense";
+  const name = value.customYearlyName ?? "火災保険料";
+  const amount = value.customYearlyAmount ?? 0;
+  const month = value.customYearlyMonth ?? 4;
+  const day = value.customYearlyDay ?? 1;
+
+  const set = (patch: Partial<AutoRecordConfig>) => onChange({ ...value, ...patch });
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[14px] font-semibold">カスタム年次の記録</div>
+          <div className="text-[10px] text-[#9B9588] mt-0.5">
+            軍用地代・火災保険料など、年1回の収入や経費
+          </div>
+        </div>
+        <Toggle on={on} onChange={(v) => set({ customYearly: v })} small />
+      </div>
+      {on && (
+        <div className="mt-3 space-y-3 pl-1">
+          <div className="flex bg-[#F0EDE5] rounded-lg p-1 text-[12px] font-semibold">
+            <button
+              type="button"
+              onClick={() => set({ customYearlyKind: "income" })}
+              className="flex-1 py-1.5 rounded-md transition-all"
+              style={{
+                background: kind === "income" ? "white" : "transparent",
+                color: kind === "income" ? "#3D8B4E" : "#9B9588",
+                boxShadow: kind === "income" ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+              }}
+            >
+              収入
+            </button>
+            <button
+              type="button"
+              onClick={() => set({ customYearlyKind: "expense" })}
+              className="flex-1 py-1.5 rounded-md transition-all"
+              style={{
+                background: kind === "expense" ? "white" : "transparent",
+                color: kind === "expense" ? "#B85450" : "#9B9588",
+                boxShadow: kind === "expense" ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+              }}
+            >
+              経費
+            </button>
+          </div>
+
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => set({ customYearlyName: e.target.value })}
+            placeholder={kind === "income" ? "例: 軍用地代" : "例: 火災保険料"}
+            className="w-full text-[15px] py-2.5 px-3 bg-white rounded-lg border border-transparent focus:outline-none focus:border-[#1F1F1F]"
+          />
+
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9B9588] text-[15px] font-medium">
+              ¥
+            </span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={amount === 0 ? "" : amount}
+              onChange={(e) => set({ customYearlyAmount: Number(e.target.value || "0") })}
+              placeholder="120000"
+              className="w-full text-[16px] py-2.5 pl-8 pr-3 bg-white rounded-lg border border-transparent focus:outline-none focus:border-[#1F1F1F] num text-right font-semibold"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[12px] text-[#9B9588]">毎年</span>
+            <select
+              value={month}
+              onChange={(e) => set({ customYearlyMonth: Number(e.target.value) })}
+              className="text-[15px] py-1.5 px-2.5 bg-[#F0EDE5] rounded-md font-semibold num focus:outline-none"
+            >
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <option key={m} value={m}>
+                  {m}月
+                </option>
+              ))}
+            </select>
+            <select
+              value={day}
+              onChange={(e) => set({ customYearlyDay: Number(e.target.value) })}
+              className="text-[15px] py-1.5 px-2.5 bg-[#F0EDE5] rounded-md font-semibold num focus:outline-none"
+            >
+              {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                <option key={d} value={d}>
+                  {d}日
+                </option>
+              ))}
+            </select>
+            <span className="text-[12px] text-[#9B9588]">に記録</span>
           </div>
         </div>
       )}

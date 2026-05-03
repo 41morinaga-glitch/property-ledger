@@ -41,6 +41,7 @@ interface AutoRecordResult {
 const RENT_TAG = "家賃 [auto]";
 const MONTHLY_EXPENSE_TAG = "毎月の経費 [auto]";
 const PROPERTY_TAX_TAG = "固定資産税 [auto]";
+const CUSTOM_YEARLY_TAG = "[auto:yearly]";
 
 export function generateAutoRecords(data: AppData, now: Date = new Date()): AutoRecordResult {
   const addedTx: Transaction[] = [];
@@ -104,6 +105,50 @@ export function generateAutoRecords(data: AppData, now: Date = new Date()): Auto
       }
     }
 
+    // ============= カスタム年次(火災保険料 / 軍用地代 など) =============
+    if (
+      cfg.customYearly &&
+      (cfg.customYearlyAmount ?? 0) > 0 &&
+      cfg.customYearlyKind &&
+      cfg.customYearlyMonth &&
+      cfg.customYearlyDay
+    ) {
+      const ckMonth = cfg.customYearlyMonth;
+      const ckDay = cfg.customYearlyDay;
+      const ckAmount = cfg.customYearlyAmount!;
+      const ckKind = cfg.customYearlyKind;
+      const ckName = (cfg.customYearlyName ?? "").trim() || "年次の記録";
+      const memoTag = `${ckName} ${CUSTOM_YEARLY_TAG}`;
+
+      const yearStart = pickCustomYearlyStartYear(cfg, now);
+      let lastDoneYear = cfg.lastGeneratedCustomYearlyYear;
+      for (let year = yearStart; year <= now.getFullYear(); year++) {
+        const day = clampDay(year, ckMonth - 1, ckDay);
+        const date = `${year}-${pad(ckMonth)}-${pad(day)}`;
+        if (date > todayIso) break;
+        if (!hasCustomYearlyMarker(data.transactions, addedTx, p.id, year, ckName)) {
+          addedTx.push({
+            id: uid(),
+            propertyId: p.id,
+            kind: ckKind,
+            category: "main",
+            amount: ckAmount,
+            date,
+            memo: memoTag,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        lastDoneYear = year;
+      }
+      if (
+        lastDoneYear !== undefined &&
+        lastDoneYear !== cfg.lastGeneratedCustomYearlyYear
+      ) {
+        updatedCfg = { ...updatedCfg, lastGeneratedCustomYearlyYear: lastDoneYear };
+        cfgPatched = true;
+      }
+    }
+
     // ============= 年次(固定資産税) =============
     if (cfg.propertyTax && (p.propertyTax ?? 0) > 0) {
       const taxMonth = cfg.propertyTaxMonth ?? 5;
@@ -163,6 +208,34 @@ function pickYearlyStartYear(
   return now.getFullYear();
 }
 
+function pickCustomYearlyStartYear(
+  cfg: NonNullable<Property["autoRecord"]>,
+  now: Date,
+): number {
+  if (cfg.lastGeneratedCustomYearlyYear !== undefined) {
+    return cfg.lastGeneratedCustomYearlyYear + 1;
+  }
+  return now.getFullYear();
+}
+
+function hasCustomYearlyMarker(
+  existing: Transaction[],
+  pending: Transaction[],
+  propertyId: string,
+  year: number,
+  name: string,
+): boolean {
+  const find = (t: Transaction) => {
+    if (t.propertyId !== propertyId) return false;
+    if (t.date.slice(0, 4) !== String(year)) return false;
+    if (!t.memo) return false;
+    if (!t.memo.includes(CUSTOM_YEARLY_TAG)) return false;
+    if (!t.memo.includes(name)) return false;
+    return true;
+  };
+  return existing.some(find) || pending.some(find);
+}
+
 function hasMonthlyMarker(
   existing: Transaction[],
   pending: Transaction[],
@@ -177,6 +250,7 @@ function hasMonthlyMarker(
     if ((t.category ?? "main") !== "main") return false;
     if (t.date.slice(0, 7) !== ym) return false;
     if (t.memo?.includes(PROPERTY_TAX_TAG)) return false;
+    if (t.memo?.includes(CUSTOM_YEARLY_TAG)) return false;
     if (marker === "rent") {
       return true;
     }

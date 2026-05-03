@@ -29,10 +29,24 @@ export interface AutoRecordConfig {
   propertyTaxMonth?: number;
   /** 固定資産税の記録日(1-28) */
   propertyTaxDay?: number;
+  /** カスタム年次記録(火災保険料など)を有効化 */
+  customYearly?: boolean;
+  /** カスタム年次の名称(例: 火災保険料) */
+  customYearlyName?: string;
+  /** 収入か経費か */
+  customYearlyKind?: TxKind;
+  /** カスタム年次の金額 */
+  customYearlyAmount?: number;
+  /** 記録月(1-12) */
+  customYearlyMonth?: number;
+  /** 記録日(1-28) */
+  customYearlyDay?: number;
   /** 月次の最終生成 ym(YYYY-MM) */
   lastGeneratedYm?: string;
   /** 年次(固定資産税)の最終生成年 */
   lastGeneratedTaxYear?: number;
+  /** カスタム年次の最終生成年 */
+  lastGeneratedCustomYearlyYear?: number;
 }
 
 export const DEFAULT_AUTO_RECORD: AutoRecordConfig = {
@@ -44,6 +58,12 @@ export const DEFAULT_AUTO_RECORD: AutoRecordConfig = {
   propertyTax: false,
   propertyTaxMonth: 5,
   propertyTaxDay: 1,
+  customYearly: false,
+  customYearlyName: "火災保険料",
+  customYearlyKind: "expense",
+  customYearlyAmount: 0,
+  customYearlyMonth: 4,
+  customYearlyDay: 1,
 };
 
 export type TxKind = "income" | "expense";
